@@ -1,0 +1,26 @@
+.env
+.env.*
+!.env.example
+
+# Reference projects
+PINGO
+
+# Local database backups
+backup/
+backups/
+*.dump
+*.backup
+*.sql.gz
+*.sql.zst
+
+# Build and test artifacts
+bin/
+dist/
+coverage.out
+*.test
+log
+comm
+
+# Local tool/cache directories
+.tools/
+tmp/

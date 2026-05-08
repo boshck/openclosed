@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-openclosed}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openclosed}
+      POSTGRES_DB: ${POSTGRES_DB:-openclosed}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: postgres:17-alpine
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://openclosed:openclosed@postgres:5432/openclosed?sslmode=disable}
+    volumes:
+      - ./migrations:/migrations:ro
+    command: ["psql", "${DATABASE_URL:-postgres://openclosed:openclosed@postgres:5432/openclosed?sslmode=disable}", "-v", "ON_ERROR_STOP=1", "-f", "/migrations/001_guard_mode.up.sql"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  bot:
+    image: ${DOCKERHUB_USER:-local}/openclosed-bot:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      DATABASE_URL: ${DATABASE_URL:-postgres://openclosed:openclosed@postgres:5432/openclosed?sslmode=disable}
+      OPENCLOSED_API_BASE: ${OPENCLOSED_API_BASE:-https://api.telegram.org}
+      OPENCLOSED_POLL_TIMEOUT_SECONDS: ${OPENCLOSED_POLL_TIMEOUT_SECONDS:-30}
+      OPENCLOSED_REMOVAL_INTERVAL_SECONDS: ${OPENCLOSED_REMOVAL_INTERVAL_SECONDS:-5}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
