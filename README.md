@@ -1,5 +1,7 @@
 # openclosed
 
+UPD НЕ СПРАШИВАЙТЕ.
+
 Telegram guard bot for public channels, groups and supergroups.
 
 Target behavior:
